@@ -1,0 +1,3 @@
+<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>get_time<｜tool▁sep｜>{"city": "Tokyo"}<｜tool▁call▁end｜><｜tool▁calls▁end｜>
+|　                　| 　               　|        |　        　|                 |　             　| 　              　|
+0　                　19　               　38       47　       　58                76　            　92　              　110

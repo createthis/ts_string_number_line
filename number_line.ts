@@ -1,34 +1,38 @@
 #!/usr/bin/env -S node --import tsx/esm
-// ASCII/Unicode number line with ticks on '<' and '>'.
-// Uses full-width spaces under '｜' to keep Markdown alignment.
-const FW_BAR = '｜';
-const FW_SPACE = '　';
+const FW_BAR='｜', FW_SPACE='　';
 
-function graph(str: string): string {
-  const chars = Array.from(str);
-  const n = chars.length;
+function graph(str:string):string{
+  const chars=[...str], n=chars.length;
 
-  const line1 = chars.join('');
-  const line2 = chars.map(c => (c === '<' || c === '>') ? '|' : (c === FW_BAR ? FW_SPACE : ' ')).join('');
+  // line1: the string
+  const line1=chars.join('');
 
-  // Label positions: show 0 and every '>' index, avoiding overlap; shift left at end to fit.
-  const labelPositions = [0, ...chars.map((c, i) => c === '>' ? i : -1).filter(i => i >= 0)];
-  const idx = chars.map(c => c === FW_BAR ? FW_SPACE : ' ');
+  // line2: ticks + full-width spaces under FW bars; suppress '<' when preceded by '>'
+  const tickArr=chars.map((c,i)=>{
+    if(c===FW_BAR) return FW_SPACE;
+    if(c==='<' && i>0 && chars[i-1]==='>') return ' ';
+    return (c==='<'||c==='>') ? '|' : ' ';
+  });
+  const line2=tickArr.join('');
 
-  let lastEnd = -1;
-  for (const pos of labelPositions) {
-    const lab = String(pos);
-    let start = Math.min(pos, n - lab.length);
-    if (start <= lastEnd) start = Math.min(n - lab.length, lastEnd + 2);
-    if (start <= lastEnd) continue; // still no room
-    for (let j = 0; j < lab.length && start + j < n; j++) idx[start + j] = lab[j];
-    lastEnd = start + lab.length - 1;
+  // line3: labels for every tick; propagate FW spaces per rule 3/4
+  const labelArr=Array.from({length:n},(_,i)=> tickArr[i]===FW_SPACE ? FW_SPACE : ' ');
+  const tickPositions=tickArr.map((c,i)=> c==='|'?i:-1).filter(i=>i>=0);
+
+  for(const pos of tickPositions){
+    const lab=String(pos);
+    let start=Math.min(pos, n-lab.length);
+    // write label digits
+    for(let j=0;j<lab.length;j++) labelArr[start+j]=lab[j];
+    // if any FW space sits under the label span, move one FW space to immediately after the label
+    const overlapped=Array.from({length:lab.length},(_,j)=> start+j)
+      .some(k=> tickArr[k]===FW_SPACE);
+    if(overlapped && start+lab.length<n) labelArr[start+lab.length]=FW_SPACE;
   }
 
-  const line3 = idx.join('');
-  return [line1, line2, line3].join('\n');
+  return [line1,line2,labelArr.join('')].join('\n');
 }
 
-// Demo with your string:
-const s = `<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>get_time<｜tool▁sep｜>{"city": "Tokyo"}<｜tool▁call▁end｜><｜tool▁calls▁end｜>`;
+// Demo
+const s=`<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>get_time<｜tool▁sep｜>{"city": "Tokyo"}<｜tool▁call▁end｜><｜tool▁calls▁end｜>`;
 console.log(graph(s));
